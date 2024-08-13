@@ -33,11 +33,17 @@ def task_times_test():
 
     # assert
     assert task.overall_time() == pytest.approx(9, abs=0.01), f"Top level task's overall time {task.overall_time()} does not match the expected value of 9"
-    assert task.step_times() == pytest.approx([1, 3, 3, 2], abs=0.01), f"Top level task's step times {task.step_times()} do not match expected times of [1, 3, 3, 2].\nElapsed times are {task.elapsed}"
+    assert task.step_times() == pytest.approx([1, 3, 3, 2], abs=0.01), f"Top level task's step times {task.step_times()} do not match expected times of [1, 3, 3, 2].\nElapsed times are {[task.start_time, task.end_time]}"
 
     assert task2.overall_time() == pytest.approx(3, abs=0.01), f"First subtask's overall time {task2.overall_time()} does not match expected time of 3"
-    assert task2.step_times() == pytest.approx([1, 2], abs=0.01), f"First subtask's step times {task2.step_times()} do not match expected times of [1, 2].\nElapsed times are {task2.elapsed}"
+    assert task2.step_times() == pytest.approx([1, 2], abs=0.01), f"First subtask's step times {task2.step_times()} do not match expected times of [1, 2].\nElapsed times are {[task.start_time, task.end_time]}"
 
     assert task3.overall_time() == pytest.approx(2, abs=0.01), f"Second subtask's overall time {task3.overall_time()} does not match expected time of 2"
-    assert task3.step_times() == pytest.approx([2], abs=0.01), f"Second subtask's step times {task3.step_times()} do not match expected times of [2].\nElapsed times are {task3.elapsed}"
+    assert task3.step_times() == pytest.approx([2], abs=0.01), f"Second subtask's step times {task3.step_times()} do not match expected times of [2].\nElapsed times are {[task.start_time, task.end_time]}"
 
+def title_if_no_steps_test():
+    instruction1 = "step 1"
+    instruction2 = "step 2"
+    task = Task("task", [Task(title=instruction1), Task(title=instruction2)])
+    result = list(task.instructions())
+    assert result == [instruction1, instruction2]

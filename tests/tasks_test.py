@@ -49,6 +49,59 @@ def title_if_no_steps_test():
     result = list(task.instructions())
     assert result == [instruction1, instruction2]
 
+def task_eq_test():
+    task1 = Task("title", [Task("1", ["1.1"]), Task("2")])
+    task2 = Task("title", [Task("1", ["1.1"]), Task("2")])
+    assert task1 == task2
+
+def task_not_eq_test():
+    task1 = Task("title", [Task("1", ["1.1"]), Task("2")])
+    task2 = Task("title", [Task("1"), Task("2")])
+    assert task1 != task2
+
+def task_repr_test():
+    task = Task("title", [Task("1", ["1.1"], 1), Task("2", depth=1)])
+    expected = "Task(title='title', depth=0, steps=[Task(title='1', depth=1, steps=[Task(title='1.1', depth=2, steps=[])]), Task(title='2', depth=1, steps=[])])"
+    assert repr(task) == expected
+
+def load_from_lines_flat_test():
+    lines = [
+        "I am a title",
+        "instruction 1",
+        "instruction 2",
+        "instruction 3"
+    ]
+    expected = Task("I am a title", steps=[Task("instruction 1"), Task("instruction 2"), Task("instruction 3")])
+
+    result = Task.from_lines(lines)
+    assert result == expected
+
+def load_from_lines_nested_test():
+    lines = [
+        "I am a title",
+        "instruction 1",
+        "subtask 2",
+        "\tsubsubtask 2.1",
+        "\t\tinstruction 2.1.1",
+        "\tinstruction 2.2",
+        "instruction 3"
+    ]
+    expected = Task("I am a title", [
+        Task("instruction 1"),
+        Task("subtask 2", [
+            Task("subsubtask 2.1", [
+                Task("instruction 2.1.1")
+            ]),
+            Task("instruction 2.2")
+        ]),
+        Task("instruction 3")
+    ])
+
+    result = Task.from_lines(lines)
+
+    assert list(result.instructions()) == ["instruction 1", "instruction 2.1.1", "instruction 2.2", "instruction 3"]
+    assert result == expected
+
 
 def current_instruction_property_signal_test():
     runner = TaskRunner()

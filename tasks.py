@@ -1,17 +1,26 @@
 from PySide6.QtCore import QObject, Signal, Slot, Property, QElapsedTimer
-from PySide6.QtQml import QmlNamedElement, QmlElement, qmlRegisterType
+from PySide6.QtQml import QmlElement
 
 QML_IMPORT_NAME = "tasks"
 QML_IMPORT_MAJOR_VERSION = 1
 
 class Task:
 
-    def __init__(self, title, steps = []):
+    def __init__(self, title, steps=None, depth=0):
         self.title = title
-        self.steps = steps
-        for i, step in enumerate(steps):
+        self.steps = steps if steps is not None else []
+        self.depth = depth
+        for i, step in enumerate(self.steps):
             if isinstance(step, str):
-                self.steps[i] = Task(step)
+                self.steps[i] = Task(step, depth=self.depth+1)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(title={self.title!r}, depth={self.depth!r}, steps={self.steps!r})"
+
+    def __eq__(self, other):
+        if self.title != other.title:
+            return False
+        return self.steps == other.steps
 
     def instructions(self, timer=None):
         """generator function that recursively yields each instruction and records the elapsed time for each of them"""
@@ -37,6 +46,33 @@ class Task:
         for step in self.steps:
             times.append(step.overall_time())
         return times
+    
+    @classmethod
+    def from_lines(cls, lines) -> 'Task':
+        task_stack = []
+        for i, line in enumerate(lines):
+            # skip line if all whitespace
+            if line.isspace():
+                continue
+            # first line is the title of the top level task
+            if i == 0:
+                task_stack.append(cls(line.strip(), depth=0))
+            else:
+                # count how many tabs to get depth
+                # (steps of the top level task have no tabs but a depth of 1)
+                depth = 1
+                while line[depth-1] == '\t':
+                    depth += 1
+                # create new task with stripped line as title
+                new_task = cls(line.strip(), depth=depth)
+                # pop off stack until the top task has 1 less depth
+                while task_stack[-1].depth >= depth:
+                    task_stack.pop()
+                # append new task to steps, and push to stack
+                task_stack[-1].steps.append(new_task)
+                task_stack.append(new_task)
+        # return top level task
+        return task_stack[0]
     
     def to_dict(self):
         pass

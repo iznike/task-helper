@@ -1,6 +1,7 @@
 import time
 import pytest
 from PySide6.QtCore import QElapsedTimer
+from PySide6.QtTest import QSignalSpy
 from tasks import *
 
 def list_of_instructions_test():
@@ -47,3 +48,50 @@ def title_if_no_steps_test():
     task = Task("task", [Task(title=instruction1), Task(title=instruction2)])
     result = list(task.instructions())
     assert result == [instruction1, instruction2]
+
+
+def current_instruction_property_signal_test():
+    runner = TaskRunner()
+    signal = QSignalSpy(runner.currentInstructionChanged)
+    assert signal.isValid()
+    runner.currentInstruction = "hello"
+    assert signal.count() == 1
+    assert runner.currentInstruction == "hello"
+
+def current_instruction_changes_while_running_test():
+    runner = TaskRunner()
+    runner.task = Task("my test task", [Task("one"), Task("two")])
+    signal = QSignalSpy(runner.finished)
+    assert signal.isValid()
+
+    assert runner.currentInstruction == ""
+    assert runner.running == False
+
+    runner.start()
+    assert runner.currentInstruction == "one"
+    assert runner.running == True
+
+    runner.next()
+    assert runner.currentInstruction == "two"
+    assert runner.running == True
+    assert signal.count() == 0
+
+    runner.next()
+    assert runner.currentInstruction == ""
+    assert runner.running == False
+    assert signal.count() == 1
+
+def start_raises_exception_if_already_running_test():
+    runner = TaskRunner()
+    runner.task = Task("my test task", [Task("one"), Task("two")])
+    runner.start()
+
+    with pytest.raises(Exception):
+        runner.start()
+
+def next_raises_exception_if_not_running_test():
+    runner = TaskRunner()
+    runner.task = Task("my test task", [Task("one"), Task("two")])
+
+    with pytest.raises(Exception):
+        runner.next()

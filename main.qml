@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtTextToSpeech
+import tasks
 
 ApplicationWindow {
     id: root
@@ -9,31 +10,35 @@ ApplicationWindow {
     height: 500
     color: "green"
 
-    property list<string> steps: [
-        "Wash your hands",
-        "Dry your hands",
-        "Repeat",
-        "End :)"
-    ]
+    TaskRunner { id: taskRunner }
+
+    Button {
+        text: "START"
+        onClicked: {
+            taskRunner.start();
+            visible = false;
+            instructionText.focus = true;
+        }
+    }
 
     Text {
+        id: instructionText
         focus: true
         anchors.fill: parent
         padding: 50
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         
-        property int step: 1
-        text: root.steps[step]
+        text: taskRunner.currentInstruction
 
         font.pointSize: 72
         fontSizeMode: Text.Fit
 
         Keys.onPressed: (event) => {
-            if ((event.key == Qt.Key_Right) && (step < root.steps.length - 1))
-                step++;
-            if ((event.key == Qt.Key_Left) && (step > 0))
-                step--;
+            if ((event.key == Qt.Key_Right) && (taskRunner.running)) {
+                taskRunner.next();
+                tts.say(text);
+            }
             if (event.key == Qt.Key_Space) {
                 tts.say(text);
             }

@@ -1,3 +1,9 @@
+from PySide6.QtCore import QObject, Signal, Slot, Property, QElapsedTimer
+from PySide6.QtQml import QmlNamedElement, QmlElement, qmlRegisterType
+
+QML_IMPORT_NAME = "tasks"
+QML_IMPORT_MAJOR_VERSION = 1
+
 class Task:
 
     def __init__(self, title, steps = []):
@@ -35,11 +41,72 @@ class Task:
     def to_dict(self):
         pass
     
-
-# class TaskRunner
-# QtObject
 # load_from_plaintext()
 # load_from_file()
 # loadFromFile()
+
+
+# class TaskRunner
+# QtObject
 # run()
 
+@QmlElement
+class TaskRunner(QObject):
+
+    currentInstructionChanged = Signal()
+    runningChanged = Signal()
+    finished = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._current_instruction = ""
+        self.timer = QElapsedTimer()
+        self._running = False
+        # hardcoded task for now
+        self.task = Task("My fun task", [
+            "Wash your hands",
+            "Dry your hands",
+            "Repeat",
+            "End :)"
+        ])
+
+    @Property(str, notify=currentInstructionChanged)
+    def currentInstruction(self):
+        return self._current_instruction
+    @currentInstruction.setter
+    def currentInstruction(self, instruction):
+        self._current_instruction = instruction
+        self.currentInstructionChanged.emit()
+
+    @Property(bool, notify=runningChanged)
+    def running(self):
+        return self._running
+    @running.setter
+    def running(self, r):
+        self._running = r
+        self.runningChanged.emit()
+
+    @Slot()
+    def start(self):
+        if self.running:
+            raise Exception("Already running")
+        self.running = True
+
+        # instantiate generator
+        self.instructions_gen = self.task.instructions(self.timer)
+
+        # start timer and get first instruction
+        self.timer.start()
+        self.currentInstruction = next(self.instructions_gen)
+
+    @Slot()
+    def next(self):
+        if not self.running:
+            raise Exception("Not running")
+        
+        try:
+            self.currentInstruction = next(self.instructions_gen)
+        except StopIteration:
+            self.running = False
+            self.currentInstruction = ""
+            self.finished.emit()

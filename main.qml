@@ -1,7 +1,5 @@
 import QtQuick
 import QtQuick.Controls
-import QtTextToSpeech
-import tasks
 
 ApplicationWindow {
     id: root
@@ -10,42 +8,24 @@ ApplicationWindow {
     height: 500
     color: "green"
 
-    TaskRunner { id: taskRunner }
-
-    Button {
-        text: "START"
-        onClicked: {
-            taskRunner.start();
-            visible = false;
-            instructionText.focus = true;
-        }
-    }
-
-    Text {
-        id: instructionText
-        focus: true
+    Loader {
+        id: pageLoader
         anchors.fill: parent
-        padding: 50
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        
-        text: taskRunner.currentInstruction
+        sourceComponent: startPage
+    }
 
-        font.pointSize: 72
-        fontSizeMode: Text.Fit
-
-        Keys.onPressed: (event) => {
-            if ((event.key == Qt.Key_Right) && (taskRunner.running)) {
-                taskRunner.next();
-                tts.say(text);
-            }
-            if (event.key == Qt.Key_Space) {
-                tts.say(text);
+    Component {
+        id: startPage
+        Item {
+            Button {
+                width: 50
+                height: 25
+                anchors.centerIn: parent
+                text: "START"
+                onClicked: pageLoader.source = "RunTaskPage.qml"
             }
         }
+        
     }
-
-    TextToSpeech {
-        id: tts
-    }
+    
 }

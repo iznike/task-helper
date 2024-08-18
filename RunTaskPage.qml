@@ -5,6 +5,8 @@ import tasks
 
 Item {
         anchors.fill: parent
+
+        property string taskText
     
         TaskRunner {
             id: taskRunner
@@ -39,6 +41,7 @@ Item {
         }
 
         Component.onCompleted: {
+            taskRunner.loadFromText(taskText);
             taskRunner.start();
         }
     }

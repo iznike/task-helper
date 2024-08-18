@@ -52,7 +52,7 @@ class Task:
         task_stack = []
         for i, line in enumerate(lines):
             # skip line if all whitespace
-            if line.isspace():
+            if line == "" or line.isspace():
                 continue
             # first line is the title of the top level task
             if i == 0:
@@ -98,13 +98,7 @@ class TaskRunner(QObject):
         self._current_instruction = ""
         self.timer = QElapsedTimer()
         self._running = False
-        # hardcoded task for now
-        self.task = Task("My fun task", [
-            "Wash your hands",
-            "Dry your hands",
-            "Repeat",
-            "End :)"
-        ])
+        self.task = Task("Default Task")
 
     @Property(str, notify=currentInstructionChanged)
     def currentInstruction(self):
@@ -146,3 +140,9 @@ class TaskRunner(QObject):
             self.running = False
             self.currentInstruction = ""
             self.finished.emit()
+
+    @Slot(str)
+    def loadFromText(self, text):
+        lines = text.splitlines()
+        self.task = Task.from_lines(lines)
+        self.currentInstruction = next(self.task.instructions())

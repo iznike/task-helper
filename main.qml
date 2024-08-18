@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 
 ApplicationWindow {
     id: root
@@ -16,13 +17,21 @@ ApplicationWindow {
 
     Component {
         id: startPage
-        Item {
+        ColumnLayout {
+            anchors.fill: parent
+            TextArea {
+                id: taskText
+                Layout.fillHeight: true
+                Layout.fillWidth: true
+                Layout.margins: 10
+            }
             Button {
                 width: 50
                 height: 25
-                anchors.centerIn: parent
+                Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
+                Layout.bottomMargin: 10
                 text: "START"
-                onClicked: pageLoader.source = "RunTaskPage.qml"
+                onClicked: pageLoader.setSource("RunTaskPage.qml", {"taskText": taskText.text})
             }
         }
         

@@ -148,3 +148,16 @@ def next_raises_exception_if_not_running_test():
 
     with pytest.raises(Exception):
         runner.next()
+
+def load_from_text_test():
+    text = "I am a title\nInstruction 1\nSubtask\n\tInstruction 2\n\tInstruction 3\nInstruction 4"
+    expected = Task("I am a title", [
+        Task("Instruction 1", depth=1),
+        Task("Subtask", depth=1, steps=[Task("Instruction 2", depth=2), Task("Instruction 3", depth=2)]),
+        Task("Instruction 4", depth=1)
+    ])
+    runner = TaskRunner()
+
+    runner.loadFromText(text)
+    assert runner.task == expected
+    assert runner.currentInstruction == "Instruction 1"

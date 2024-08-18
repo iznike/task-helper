@@ -22,17 +22,36 @@ class Task:
             return False
         return self.steps == other.steps
 
-    def instructions(self, timer=None):
-        """generator function that recursively yields each instruction and records the elapsed time for each of them"""
-        # for each step, record the time and yield the next instruction
-        if timer: self.start_time = timer.elapsed()
+    def instructions(self, as_strings=True):
+        """generator function that recursively yields each step/instruction"""
         if len(self.steps) == 0:
-            yield self.title
+            if as_strings:
+                yield self.title
+            else:
+                yield self
         else:
             for step in self.steps:
-                yield from step.instructions(timer)
-        # record final elapsed time after last step
-        if timer: self.end_time = timer.elapsed()
+                yield from step.instructions(as_strings)
+
+    @property
+    def start_time(self):
+        if hasattr(self, '_start_time'):
+            return self._start_time
+        else:
+            return self.steps[0].start_time
+    @start_time.setter
+    def start_time(self, time):
+        self._start_time = time
+
+    @property
+    def end_time(self):
+        if hasattr(self, '_end_time'):
+            return self._end_time
+        else:
+            return self.steps[len(self.steps)-1].end_time
+    @end_time.setter
+    def end_time(self, time):
+        self._end_time = time
 
     def overall_time(self):
         """returns the overall time taken for the task, in seconds"""
@@ -122,21 +141,31 @@ class TaskRunner(QObject):
             raise Exception("Already running")
         self.running = True
 
-        # instantiate generator
-        self.instructions_gen = self.task.instructions(self.timer)
+        # get list of steps
+        self.steps = list(self.task.instructions(as_strings=False))
+        self.stepIndex = 0
 
         # start timer and get first instruction
+        currentStep = self.steps[0]
         self.timer.start()
-        self.currentInstruction = next(self.instructions_gen)
+        currentStep.start_time = self.timer.elapsed()
+        self.currentInstruction = currentStep.title
 
     @Slot()
     def next(self):
         if not self.running:
             raise Exception("Not running")
         
+        # record end time for current step
+        self.steps[self.stepIndex].end_time = self.timer.elapsed()
+
+        # increment step and record start time
+        self.stepIndex += 1
         try:
-            self.currentInstruction = next(self.instructions_gen)
-        except StopIteration:
+            step = self.steps[self.stepIndex]
+            step.start_time = self.timer.elapsed()
+            self.currentInstruction = step.title
+        except IndexError:
             self.running = False
             self.currentInstruction = ""
             self.finished.emit()
@@ -145,4 +174,4 @@ class TaskRunner(QObject):
     def loadFromText(self, text):
         lines = text.splitlines()
         self.task = Task.from_lines(lines)
-        self.currentInstruction = next(self.task.instructions())
+        self.currentInstruction = next(self.task.instructions(as_strings=True))

@@ -106,6 +106,30 @@ def current_instruction_changes_while_running_test():
     assert runner.running == False
     assert signal.count() == 1
 
+def current_instruction_back_test():
+    runner = TaskRunner()
+    runner.task = Task("my test task", [Task("one", ["one part 1", "one part 2"]), Task("two", ["two part 1", "two part 2"])])
+
+    runner.start()
+    assert runner.currentInstruction == "one part 1"
+
+    runner.back()
+    assert runner.currentInstruction == "one part 1"
+
+    runner.next()
+    runner.next()
+    runner.next()
+    assert runner.currentInstruction == "two part 2"
+
+    runner.back()
+    assert runner.currentInstruction == "two part 1"
+
+    runner.back()
+    assert runner.currentInstruction == "one part 2"
+
+    runner.back()
+    assert runner.currentInstruction == "one part 1"
+
 def start_raises_exception_if_already_running_test():
     runner = TaskRunner()
     runner.task = Task("my test task", [Task("one"), Task("two")])
@@ -120,6 +144,13 @@ def next_raises_exception_if_not_running_test():
 
     with pytest.raises(Exception):
         runner.next()
+
+def back_raises_exception_if_not_running_test():
+    runner = TaskRunner()
+    runner.task = Task("my test task", [Task("one"), Task("two")])
+
+    with pytest.raises(Exception):
+        runner.back()
 
 def load_from_text_test():
     text = "I am a title\nInstruction 1\nSubtask\n\tInstruction 2\n\tInstruction 3\nInstruction 4"
@@ -166,3 +197,26 @@ def task_times_test():
 
     assert task3.overall_time() == pytest.approx(2, abs=0.01), f"Second subtask's overall time {task3.overall_time()} does not match expected time of 2"
     assert task3.step_times() == pytest.approx([2], abs=0.01), f"Second subtask's step times {task3.step_times()} do not match expected times of [2].\nElapsed times are {[task.start_time, task.end_time]}"
+
+def back_times_test():
+    # arrange
+    task = Task("task", ["step 1", "step 2"])
+    runner = TaskRunner()
+    runner.task = task
+
+    # act
+    runner.start()
+    time.sleep(1)
+    runner.next()
+    time.sleep(1)
+    runner.back()
+    time.sleep(1)
+    runner.next()
+    time.sleep(1)
+    runner.next()
+    with pytest.raises(Exception):
+        runner.next()
+
+    # assert
+    assert task.overall_time() == pytest.approx(4, abs=0.01)
+    assert task.step_times() == pytest.approx([3, 1], abs=0.01)

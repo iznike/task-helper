@@ -170,6 +170,15 @@ class TaskRunner(QObject):
             self.currentInstruction = ""
             self.finished.emit()
 
+    @Slot()
+    def back(self):
+        if not self.running:
+            raise Exception("Not running")
+        
+        if self.stepIndex != 0:
+            self.stepIndex -= 1
+            self.currentInstruction = self.steps[self.stepIndex].title
+
     @Slot(str)
     def loadFromText(self, text):
         lines = text.splitlines()

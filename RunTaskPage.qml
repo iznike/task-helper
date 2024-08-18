@@ -17,6 +17,9 @@ Item {
             if ((event.key == Qt.Key_Right) && (taskRunner.running)) {
                 taskRunner.next();
             }
+            if ((event.key == Qt.Key_Left) && (taskRunner.running)) {
+                taskRunner.back();
+            }
             if (event.key == Qt.Key_Space) {
                 tts.say(instructionText.text);
             }

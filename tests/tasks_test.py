@@ -220,3 +220,37 @@ def back_times_test():
     # assert
     assert task.overall_time() == pytest.approx(4, abs=0.01)
     assert task.step_times() == pytest.approx([3, 1], abs=0.01)
+
+def current_overall_time_test():
+    # arrange
+    task = Task("task", ["step 1", "step 2"])
+    runner = TaskRunner()
+    runner.task = task
+
+    # act
+    runner.start()
+    time.sleep(1)
+    runner.next()
+    time.sleep(1)
+    result = runner.currentOverallTimeString()
+
+    # assert
+    # assert result == pytest.approx(2, abs=0.01)
+    assert result == "0:00:02.00"
+
+def current_step_time_test():
+    # arrange
+    task = Task("task", ["step 1", "step 2"])
+    runner = TaskRunner()
+    runner.task = task
+
+    # act
+    runner.start()
+    time.sleep(1)
+    runner.next()
+    time.sleep(1)
+    result = runner.currentStepTimeString()
+
+    # assert
+    # assert result == pytest.approx(1, abs=0.01)
+    assert result == "0:00:01.00"

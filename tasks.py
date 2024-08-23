@@ -1,3 +1,4 @@
+from datetime import timedelta
 from PySide6.QtCore import QObject, Signal, Slot, Property, QElapsedTimer
 from PySide6.QtQml import QmlElement
 
@@ -184,3 +185,24 @@ class TaskRunner(QObject):
         lines = text.splitlines()
         self.task = Task.from_lines(lines)
         self.currentInstruction = next(self.task.instructions(as_strings=True))
+
+    @Slot(result=str)
+    def currentOverallTimeString(self):
+        """ returns the time since the task was started, formatted as a string """
+        # create a timedelta from the milliseconds
+        # plus 1 microsecond to ensure it's always formatted with fractional seconds
+        td = timedelta(milliseconds=self.timer.elapsed(), microseconds=1)
+
+        # return the string representation, truncated to 100th of a second
+        return str(td)[:-4]
+    
+    @Slot(result=str)
+    def currentStepTimeString(self):
+        """ returns the time since the current step was started, formatted as a string """
+        # create a timedelta from the milliseconds
+        # plus 1 microsecond to ensure it's always formatted with fractional seconds
+        ms = (self.timer.elapsed() - self.steps[self.stepIndex].start_time)
+        td = timedelta(milliseconds=ms, microseconds=1)
+
+        # return the string representation, truncated to 100th of a second
+        return str(td)[:-4]

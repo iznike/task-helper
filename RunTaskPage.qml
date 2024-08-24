@@ -1,8 +1,8 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
 import QtTextToSpeech
 import tasks
+import listener
 
 Item {
     anchors.fill: parent
@@ -77,9 +77,28 @@ Item {
     TextToSpeech {
         id: tts
     }
+    
+    CommandListener {
+        id: listener
+
+        enabled: taskRunner ? taskRunner.running : false
+        commands: ["next", "back"]
+
+        onCommand: function(result) {
+            switch (result) {
+                case "next":
+                    taskRunner.next();
+                    break;
+                case "back":
+                    taskRunner.back();
+                    break;
+            }
+        }
+    }
 
     Component.onCompleted: {
         taskRunner.loadFromText(taskText);
         taskRunner.start();
+        listener.start();
     }
 }

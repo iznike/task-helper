@@ -106,6 +106,9 @@ class Task:
 # QtObject
 # run()
 
+class TaskRunnerException(Exception):
+    pass
+
 @QmlElement
 class TaskRunner(QObject):
 
@@ -139,7 +142,7 @@ class TaskRunner(QObject):
     @Slot()
     def start(self):
         if self.running:
-            raise Exception("Already running")
+            raise TaskRunnerException("Start called on a TaskRunner that is already running")
         self.running = True
 
         # get list of steps
@@ -155,7 +158,7 @@ class TaskRunner(QObject):
     @Slot()
     def next(self):
         if not self.running:
-            raise Exception("Not running")
+            raise TaskRunnerException("Next called on a TaskRunner that is not running")
         
         # record end time for current step
         self.steps[self.stepIndex].end_time = self.timer.elapsed()
@@ -174,7 +177,7 @@ class TaskRunner(QObject):
     @Slot()
     def back(self):
         if not self.running:
-            raise Exception("Not running")
+            raise TaskRunnerException("Back called on a TaskRunner that is not running")
         
         if self.stepIndex != 0:
             self.stepIndex -= 1

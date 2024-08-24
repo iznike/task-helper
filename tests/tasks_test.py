@@ -135,21 +135,21 @@ def start_raises_exception_if_already_running_test():
     runner.task = Task("my test task", [Task("one"), Task("two")])
     runner.start()
 
-    with pytest.raises(Exception):
+    with pytest.raises(TaskRunnerException):
         runner.start()
 
 def next_raises_exception_if_not_running_test():
     runner = TaskRunner()
     runner.task = Task("my test task", [Task("one"), Task("two")])
 
-    with pytest.raises(Exception):
+    with pytest.raises(TaskRunnerException):
         runner.next()
 
 def back_raises_exception_if_not_running_test():
     runner = TaskRunner()
     runner.task = Task("my test task", [Task("one"), Task("two")])
 
-    with pytest.raises(Exception):
+    with pytest.raises(TaskRunnerException):
         runner.back()
 
 def load_from_text_test():
@@ -185,7 +185,7 @@ def task_times_test():
     runner.next()
     time.sleep(2)
     runner.next()
-    with pytest.raises(Exception):
+    with pytest.raises(TaskRunnerException):
         runner.next()
 
     # assert
@@ -214,7 +214,7 @@ def back_times_test():
     runner.next()
     time.sleep(1)
     runner.next()
-    with pytest.raises(Exception):
+    with pytest.raises(TaskRunnerException):
         runner.next()
 
     # assert

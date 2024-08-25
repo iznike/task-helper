@@ -114,13 +114,14 @@ class TaskRunner(QObject):
 
     currentInstructionChanged = Signal()
     runningChanged = Signal()
-    finished = Signal()
+    finishedChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._current_instruction = ""
         self.timer = QElapsedTimer()
         self._running = False
+        self._finished = False
         self.task = Task("Default Task")
 
     @Property(str, notify=currentInstructionChanged)
@@ -139,11 +140,20 @@ class TaskRunner(QObject):
         self._running = r
         self.runningChanged.emit()
 
+    @Property(bool, notify=finishedChanged)
+    def finished(self):
+        return self._finished
+    @finished.setter
+    def finished(self, f):
+        self._finished = f
+        self.finishedChanged.emit()
+
     @Slot()
     def start(self):
         if self.running:
             raise TaskRunnerException("Start called on a TaskRunner that is already running")
         self.running = True
+        self.finished = False   # in case it's being restarted
 
         # get list of steps
         self.steps = list(self.task.instructions(as_strings=False))
@@ -161,7 +171,10 @@ class TaskRunner(QObject):
             raise TaskRunnerException("Next called on a TaskRunner that is not running")
         
         # record end time for current step
-        self.steps[self.stepIndex].end_time = self.timer.elapsed()
+        try:
+            self.steps[self.stepIndex].end_time = self.timer.elapsed()
+        except IndexError:  # IndexError here means stepIndex has already been incremented past the max, meaning it has already finished
+            return
 
         # increment step and record start time
         self.stepIndex += 1
@@ -169,19 +182,28 @@ class TaskRunner(QObject):
             step = self.steps[self.stepIndex]
             step.start_time = self.timer.elapsed()
             self.currentInstruction = step.title
-        except IndexError:
-            self.running = False
+        except IndexError:  # IndexError here means stepIndex has just been incremented past the max, meaning the last step is finished
+            self.finished = True
             self.currentInstruction = ""
-            self.finished.emit()
 
     @Slot()
     def back(self):
         if not self.running:
             raise TaskRunnerException("Back called on a TaskRunner that is not running")
         
+        if self.finished:
+            self.finished = False
+
         if self.stepIndex != 0:
             self.stepIndex -= 1
             self.currentInstruction = self.steps[self.stepIndex].title
+
+    @Slot()
+    def stop(self):
+        if not self.running:
+            raise TaskRunnerException("Stop called on a TaskRunner that is not running")
+
+        self.running = False
 
     @Slot(str)
     def loadFromText(self, text):

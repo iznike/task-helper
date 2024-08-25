@@ -39,7 +39,7 @@ Item {
                 id: overallStopwatch
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                running: taskRunner ? taskRunner.running : false
+                running: taskRunner ? taskRunner.running && !taskRunner.finished : false
                 timeFunction: function () { return taskRunner.currentOverallTimeString() }
             }
 
@@ -49,7 +49,7 @@ Item {
                 Layout.preferredWidth: overallStopwatch.width/2
                 Layout.fillHeight: true
                 Layout.alignment: Qt.AlignHCenter
-                running: taskRunner ? taskRunner.running : false
+                running: taskRunner ? taskRunner.running  && !taskRunner.finished : false
                 timeFunction: function () { return taskRunner.currentStepTimeString() }
             }
             

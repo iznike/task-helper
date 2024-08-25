@@ -83,28 +83,28 @@ def current_instruction_property_signal_test():
     assert signal.count() == 1
     assert runner.currentInstruction == "hello"
 
-def current_instruction_changes_while_running_test():
+def next_changes_current_instruction_while_running_and_not_finished_test():
     runner = TaskRunner()
     runner.task = Task("my test task", [Task("one"), Task("two")])
-    signal = QSignalSpy(runner.finished)
-    assert signal.isValid()
 
     assert runner.currentInstruction == ""
     assert runner.running == False
+    assert runner.finished == False
 
     runner.start()
     assert runner.currentInstruction == "one"
     assert runner.running == True
+    assert runner.finished == False
 
     runner.next()
     assert runner.currentInstruction == "two"
     assert runner.running == True
-    assert signal.count() == 0
+    assert runner.finished == False
 
     runner.next()
     assert runner.currentInstruction == ""
-    assert runner.running == False
-    assert signal.count() == 1
+    assert runner.running == True
+    assert runner.finished == True
 
 def current_instruction_back_test():
     runner = TaskRunner()
@@ -130,6 +130,26 @@ def current_instruction_back_test():
     runner.back()
     assert runner.currentInstruction == "one part 1"
 
+def current_instruction_back_after_finished_test():
+    runner = TaskRunner()
+    runner.task = Task("my test task", [Task("one"), Task("two")])
+
+    runner.start()
+    assert runner.running == True
+    assert runner.finished == False
+    assert runner.currentInstruction == "one"
+
+    runner.next()
+    runner.next()
+    assert runner.finished == True
+    runner.next()
+    runner.back()
+    assert runner.finished == False
+    assert runner.currentInstruction == "two"
+    runner.back()
+    assert runner.currentInstruction == "one"
+
+
 def start_raises_exception_if_already_running_test():
     runner = TaskRunner()
     runner.task = Task("my test task", [Task("one"), Task("two")])
@@ -151,6 +171,13 @@ def back_raises_exception_if_not_running_test():
 
     with pytest.raises(TaskRunnerException):
         runner.back()
+
+def stop_raises_exception_if_not_running_test():
+    runner = TaskRunner()
+    runner.task = Task("my test task", [Task("one"), Task("two")])
+
+    with pytest.raises(TaskRunnerException):
+        runner.stop()
 
 def load_from_text_test():
     text = "I am a title\nInstruction 1\nSubtask\n\tInstruction 2\n\tInstruction 3\nInstruction 4"
@@ -185,8 +212,7 @@ def task_times_test():
     runner.next()
     time.sleep(2)
     runner.next()
-    with pytest.raises(TaskRunnerException):
-        runner.next()
+    assert runner.finished == True
 
     # assert
     assert task.overall_time() == pytest.approx(9, abs=0.01), f"Top level task's overall time {task.overall_time()} does not match the expected value of 9"
@@ -214,12 +240,38 @@ def back_times_test():
     runner.next()
     time.sleep(1)
     runner.next()
-    with pytest.raises(TaskRunnerException):
-        runner.next()
+    assert runner.finished == True
 
     # assert
     assert task.overall_time() == pytest.approx(4, abs=0.01)
     assert task.step_times() == pytest.approx([3, 1], abs=0.01)
+
+def back_after_finished_times_test():
+    # arrange
+    task = Task("task", ["step 1", "step 2"])
+    runner = TaskRunner()
+    runner.task = task
+
+    # act
+    runner.start()
+    time.sleep(1)
+    runner.next()
+    time.sleep(1)
+    runner.back()
+    time.sleep(1)
+    runner.next()
+    time.sleep(1)
+    runner.next()
+    assert runner.finished == True
+    time.sleep(1)
+    runner.back()
+    assert runner.finished == False
+    runner.next()
+    assert runner.finished == True
+
+    # assert
+    assert task.overall_time() == pytest.approx(5, abs=0.01)
+    assert task.step_times() == pytest.approx([3, 2], abs=0.01)
 
 def current_overall_time_test():
     # arrange
@@ -254,3 +306,14 @@ def current_step_time_test():
     # assert
     # assert result == pytest.approx(1, abs=0.01)
     assert result == "0:00:01.00"
+
+def stop_stops_running_test():
+    runner = TaskRunner()
+    runner.task = Task("task", ["one", "two"])
+    assert runner.running == False
+
+    runner.start()
+    assert runner.running == True
+
+    runner.stop()
+    assert runner.running == False

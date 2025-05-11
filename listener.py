@@ -45,14 +45,17 @@ class CommandListener(QObject):
                 data = self.q.get()
                 if rec.AcceptWaveform(data):
                     result = json.loads(rec.Result())['text']
-                else:
-                    result = json.loads(rec.PartialResult())['partial']
-                if result in self.commands:
-                    self.command.emit(result)
-                    print(result)
-                    rec = KaldiRecognizer(self.model, stream.samplerate, json.dumps(self.words))
+                    if result in self.commands:
+                        self.command.emit(result)
+                        print(result)
+                        rec = KaldiRecognizer(self.model, stream.samplerate, json.dumps(self.words))
 
     @Slot()
     def start(self):
-        thread = threading.Thread(target=self.listen)
+        thread = threading.Thread(target=self.listen, daemon=True)
         thread.start()
+
+# l = CommandListener()
+# l.commands = ["next", "back"]
+# l.enabled = True
+# l.listen()

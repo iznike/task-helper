@@ -215,14 +215,14 @@ def task_times_test():
     assert runner.finished == True
 
     # assert
-    assert task.overall_time() == pytest.approx(9, abs=0.01), f"Top level task's overall time {task.overall_time()} does not match the expected value of 9"
-    assert task.step_times() == pytest.approx([1, 3, 3, 2], abs=0.01), f"Top level task's step times {task.step_times()} do not match expected times of [1, 3, 3, 2].\nElapsed times are {[task.start_time, task.end_time]}"
+    assert task.overall_time == pytest.approx(9, abs=0.01), f"Top level task's overall time {task.overall_time()} does not match the expected value of 9"
+    assert task.step_times() == pytest.approx([1, 3, 3, 2], abs=0.01), f"Top level task's step times {task.step_times()} do not match expected times of [1, 3, 3, 2]."
 
-    assert task2.overall_time() == pytest.approx(3, abs=0.01), f"First subtask's overall time {task2.overall_time()} does not match expected time of 3"
-    assert task2.step_times() == pytest.approx([1, 2], abs=0.01), f"First subtask's step times {task2.step_times()} do not match expected times of [1, 2].\nElapsed times are {[task.start_time, task.end_time]}"
+    assert task2.overall_time == pytest.approx(3, abs=0.01), f"First subtask's overall time {task2.overall_time()} does not match expected time of 3"
+    assert task2.step_times() == pytest.approx([1, 2], abs=0.01), f"First subtask's step times {task2.step_times()} do not match expected times of [1, 2]."
 
-    assert task3.overall_time() == pytest.approx(2, abs=0.01), f"Second subtask's overall time {task3.overall_time()} does not match expected time of 2"
-    assert task3.step_times() == pytest.approx([2], abs=0.01), f"Second subtask's step times {task3.step_times()} do not match expected times of [2].\nElapsed times are {[task.start_time, task.end_time]}"
+    assert task3.overall_time == pytest.approx(2, abs=0.01), f"Second subtask's overall time {task3.overall_time()} does not match expected time of 2"
+    assert task3.step_times() == pytest.approx([2], abs=0.01), f"Second subtask's step times {task3.step_times()} do not match expected times of [2]."
 
 def back_times_test():
     # arrange
@@ -243,8 +243,8 @@ def back_times_test():
     assert runner.finished == True
 
     # assert
-    assert task.overall_time() == pytest.approx(4, abs=0.01)
-    assert task.step_times() == pytest.approx([3, 1], abs=0.01)
+    assert task.overall_time == pytest.approx(4, abs=0.01)
+    assert task.step_times() == pytest.approx([2, 2], abs=0.01)
 
 def back_after_finished_times_test():
     # arrange
@@ -270,8 +270,8 @@ def back_after_finished_times_test():
     assert runner.finished == True
 
     # assert
-    assert task.overall_time() == pytest.approx(5, abs=0.01)
-    assert task.step_times() == pytest.approx([3, 2], abs=0.01)
+    assert task.overall_time == pytest.approx(5, abs=0.01)
+    assert task.step_times() == pytest.approx([2, 3], abs=0.01)
 
 def current_overall_time_test():
     # arrange
@@ -317,3 +317,13 @@ def stop_stops_running_test():
 
     runner.stop()
     assert runner.running == False
+
+def stop_updates_time_if_not_finished_test():
+    runner = TaskRunner()
+    runner.task = Task("task", ["one", "two"])
+    
+    runner.start()
+    time.sleep(1)
+    runner.stop()
+
+    assert runner.task.overall_time == pytest.approx(1, abs=0.01)

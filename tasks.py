@@ -14,6 +14,7 @@ class Task:
         for i, step in enumerate(self.steps):
             if isinstance(step, str):
                 self.steps[i] = Task(step, depth=self.depth+1)
+        self._overall_time = 0
 
     def __repr__(self):
         return f"{self.__class__.__name__}(title={self.title!r}, depth={self.depth!r}, steps={self.steps!r})"
@@ -35,37 +36,19 @@ class Task:
                 yield from step.instructions(as_strings)
 
     @property
-    def start_time(self):
-        if hasattr(self, '_start_time'):
-            return self._start_time
-        else:
-            return self.steps[0].start_time
-    @start_time.setter
-    def start_time(self, time):
-        self._start_time = time
-
-    @property
-    def end_time(self):
-        if hasattr(self, '_end_time'):
-            return self._end_time
-        else:
-            return self.steps[len(self.steps)-1].end_time
-    @end_time.setter
-    def end_time(self, time):
-        self._end_time = time
-
     def overall_time(self):
         """returns the overall time taken for the task, in seconds"""
-        if not hasattr(self, '_overall_time'):
-            self._overall_time = (self.end_time - self.start_time) / 1000
-        return self._overall_time
+        if self.steps:
+            return sum(self.step_times())
+        else:
+            return self._overall_time
+    @overall_time.setter
+    def overall_time(self, time):
+        self._overall_time = time
     
     def step_times(self):
         """returns an array with the number of seconds each step took"""
-        times = []
-        for step in self.steps:
-            times.append(step.overall_time())
-        return times
+        return [step.overall_time for step in self.steps]
     
     @classmethod
     def from_lines(cls, lines) -> 'Task':
@@ -147,6 +130,15 @@ class TaskRunner(QObject):
     def finished(self, f):
         self._finished = f
         self.finishedChanged.emit()
+        if f:
+            for s in self.task.steps:
+                print(f"{s.title}: {s.overall_time}s")
+
+    def update_time(self, step: Task):
+        """ adds the time elapsed since current_start_time to the step's overall_time, and updates current_start_time """
+        end_time = self.timer.elapsed()
+        step.overall_time += (end_time - self.current_start_time) / 1000
+        self.current_start_time = end_time
 
     @Slot()
     def start(self):
@@ -160,28 +152,25 @@ class TaskRunner(QObject):
         self.stepIndex = 0
 
         # start timer and get first instruction
-        currentStep = self.steps[0]
         self.timer.start()
-        currentStep.start_time = self.timer.elapsed()
-        self.currentInstruction = currentStep.title
+        self.current_start_time = self.timer.elapsed()
+        self.currentInstruction = self.steps[0].title
 
     @Slot()
     def next(self):
         if not self.running:
             raise TaskRunnerException("Next called on a TaskRunner that is not running")
         
-        # record end time for current step
+        # update time for current step
         try:
-            self.steps[self.stepIndex].end_time = self.timer.elapsed()
+            self.update_time(self.steps[self.stepIndex])
         except IndexError:  # IndexError here means stepIndex has already been incremented past the max, meaning it has already finished
             return
 
-        # increment step and record start time
+        # increment step
         self.stepIndex += 1
         try:
-            step = self.steps[self.stepIndex]
-            step.start_time = self.timer.elapsed()
-            self.currentInstruction = step.title
+            self.currentInstruction = self.steps[self.stepIndex].title
         except IndexError:  # IndexError here means stepIndex has just been incremented past the max, meaning the last step is finished
             self.finished = True
             self.currentInstruction = ""
@@ -191,9 +180,14 @@ class TaskRunner(QObject):
         if not self.running:
             raise TaskRunnerException("Back called on a TaskRunner that is not running")
         
+        # update time for current step or last step if it was already finished
         if self.finished:
             self.finished = False
+            self.update_time(self.steps[-1])
+        else:
+            self.update_time(self.steps[self.stepIndex])
 
+        # decrement step
         if self.stepIndex != 0:
             self.stepIndex -= 1
             self.currentInstruction = self.steps[self.stepIndex].title
@@ -202,6 +196,10 @@ class TaskRunner(QObject):
     def stop(self):
         if not self.running:
             raise TaskRunnerException("Stop called on a TaskRunner that is not running")
+
+        # if it hasn't finished, update the time before stopping
+        if not self.finished:
+            self.update_time(self.steps[self.stepIndex])
 
         self.running = False
 
@@ -223,11 +221,12 @@ class TaskRunner(QObject):
     
     @Slot(result=str)
     def currentStepTimeString(self):
-        """ returns the time since the current step was started, formatted as a string """
-        # create a timedelta from the milliseconds
+        """ returns the total time of the current step so far, formatted as a string """
+        # create a timedelta from the step's current overall_time (seconds) and the ms since current_start_time
         # plus 1 microsecond to ensure it's always formatted with fractional seconds
-        ms = (self.timer.elapsed() - self.steps[self.stepIndex].start_time)
-        td = timedelta(milliseconds=ms, microseconds=1)
+        s = self.steps[self.stepIndex].overall_time
+        ms = self.timer.elapsed() - self.current_start_time
+        td = timedelta(seconds=s, milliseconds=ms, microseconds=1)
 
         # return the string representation, truncated to 100th of a second
         return str(td)[:-4]

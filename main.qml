@@ -9,15 +9,16 @@ ApplicationWindow {
     height: 500
     color: "green"
 
-    Loader {
-        id: pageLoader
+    StackView {
+        id: stackView
         anchors.fill: parent
-        sourceComponent: startPage
+        initialItem: startPage
     }
 
     Component {
         id: startPage
         ColumnLayout {
+            id: root
             anchors.fill: parent
             TextArea {
                 id: taskText
@@ -31,7 +32,7 @@ ApplicationWindow {
                 Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
                 Layout.bottomMargin: 10
                 text: "START"
-                onClicked: pageLoader.setSource("RunTaskPage.qml", {"taskText": taskText.text})
+                onClicked: root.StackView.view.push("RunTaskPage.qml", {"taskText": taskText.text})
             }
         }
         
